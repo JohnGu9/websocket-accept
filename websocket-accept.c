@@ -55,13 +55,20 @@ size_t _base64_encode(const unsigned char *const src, size_t len,
 
 size_t websocket_accept(const char websocket_key[WEBSOCKET_KEY_SIZE], char buffer[WEBSOCKET_ACCEPT_KEY_SIZE])
 {
-  char magic[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  char m[WEBSOCKET_KEY_SIZE + sizeof(magic) - 1];
-  assert(sizeof(m) == 60);
-  memcpy(m, websocket_key, WEBSOCKET_KEY_SIZE);
-  memcpy(m + WEBSOCKET_KEY_SIZE, magic, sizeof(magic) - 1);
+
+#define WEBSOCKET_MAGIC_CODE "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+#define WEBSOCKET_MAGIC_CODE_SIZE (sizeof(WEBSOCKET_MAGIC_CODE) - 1)
+
+  char cat_string[WEBSOCKET_KEY_SIZE + WEBSOCKET_MAGIC_CODE_SIZE];
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L // c11
+  static_assert(sizeof(cat_string) == 60);
+#endif
+
+  memcpy(cat_string, websocket_key, WEBSOCKET_KEY_SIZE);
+  memcpy(cat_string + WEBSOCKET_KEY_SIZE, WEBSOCKET_MAGIC_CODE, WEBSOCKET_MAGIC_CODE_SIZE);
   char obuf[20];
-  SHA1(obuf, m, sizeof(m));
+  SHA1(obuf, cat_string, sizeof(cat_string));
 
   return _base64_encode((const unsigned char *)obuf, sizeof(obuf),
                         (unsigned char *)buffer, WEBSOCKET_ACCEPT_KEY_SIZE);
